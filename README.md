@@ -2,6 +2,15 @@
 
 ESP32ベースのアラームクロックシステム。TM1637 7セグメントディスプレイ、電子オルゴール（ブザー）、NTP時刻同期、WiFi経由でのアラーム設定機能を搭載。
 
+## 📚 Documentation / ドキュメント
+
+- **[Quick Start Guide](QUICKSTART.md)** - Get started in 5 steps! / 5ステップで始める
+- **[Wiring Instructions](WIRING.md)** - Detailed wiring guide / 詳細な配線ガイド
+- **[Configuration Guide](CONFIGURATION.md)** - Customize settings / 設定のカスタマイズ
+- **[Examples](EXAMPLES.md)** - Usage examples and modifications / 使用例とカスタマイズ
+- **[Testing Guide](TESTING.md)** - How to test your build / テスト方法
+- **[Architecture](ARCHITECTURE.md)** - System design details / システム設計の詳細
+
 ## 機能 (Features)
 
 - ✅ TM1637 4桁7セグメントディスプレイでの時刻表示
