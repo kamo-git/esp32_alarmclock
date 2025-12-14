@@ -13,6 +13,8 @@
 #define BUZZER_PIN 25  // Buzzer pin
 
 // WiFi credentials (change these for your network)
+// SECURITY NOTE: For production use, consider using WiFiManager library
+// or storing credentials in a separate configuration file not committed to version control
 const char* ssid = "YourWiFiSSID";
 const char* password = "YourWiFiPassword";
 
@@ -59,7 +61,10 @@ int melody2Duration[] = {150, 150, 150, 150, 150, 150, 150, 300, 0};
 
 bool alarmTriggered = false;
 unsigned long alarmStartTime = 0;
+int triggeredAlarmIndex = -1; // Track which alarm was triggered
 const unsigned long ALARM_DURATION = 60000; // Alarm duration 60 seconds
+const unsigned long MELODY_REPEAT_INTERVAL = 3000; // Replay melody every 3 seconds
+const unsigned long TIMING_TOLERANCE = 100; // Timing tolerance in milliseconds
 
 void setupWiFi() {
   Serial.println("Connecting to WiFi...");
@@ -428,6 +433,7 @@ void checkAlarms() {
     // Check if alarm duration has passed
     if (millis() - alarmStartTime > ALARM_DURATION) {
       alarmTriggered = false;
+      triggeredAlarmIndex = -1;
       noTone(BUZZER_PIN);
     }
     return;
@@ -450,6 +456,7 @@ void checkAlarms() {
       Serial.println("Alarm triggered!");
       alarmTriggered = true;
       alarmStartTime = millis();
+      triggeredAlarmIndex = i; // Remember which alarm triggered
       
       // Play melody
       int melodyNum = alarms[i].melody.toInt();
@@ -518,14 +525,10 @@ void loop() {
   }
   
   // Continue playing melody if alarm is triggered
-  if (alarmTriggered && (millis() - alarmStartTime) % 3000 < 100) {
+  if (alarmTriggered && triggeredAlarmIndex >= 0 && 
+      (millis() - alarmStartTime) % MELODY_REPEAT_INTERVAL < TIMING_TOLERANCE) {
     // Replay melody every 3 seconds during alarm
-    for (int i = 0; i < alarmCount; i++) {
-      if (alarms[i].enabled) {
-        int melodyNum = alarms[i].melody.toInt();
-        playMelody(melodyNum);
-        break;
-      }
-    }
+    int melodyNum = alarms[triggeredAlarmIndex].melody.toInt();
+    playMelody(melodyNum);
   }
 }

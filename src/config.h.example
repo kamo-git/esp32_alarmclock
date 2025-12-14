@@ -1,0 +1,23 @@
+// WiFi Configuration Template
+// Copy this file to src/config.h and update with your credentials
+// Note: config.h should be added to .gitignore to keep credentials private
+
+#ifndef CONFIG_H
+#define CONFIG_H
+
+// WiFi Settings
+const char* WIFI_SSID = "YourWiFiSSID";
+const char* WIFI_PASSWORD = "YourWiFiPassword";
+
+// NTP Settings
+const char* NTP_SERVER = "pool.ntp.org";
+const long TIMEZONE_OFFSET = 32400; // JST (UTC+9) = 9 * 3600 seconds
+
+// Display Settings
+const int DISPLAY_BRIGHTNESS = 0x0f; // 0x00 to 0x0f
+
+// Alarm Settings
+const int MAX_ALARMS = 5;
+const unsigned long ALARM_DURATION_MS = 60000; // 60 seconds
+
+#endif

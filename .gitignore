@@ -5,6 +5,9 @@
 .vscode/launch.json
 .vscode/ipch
 
+# Configuration files (may contain credentials)
+src/config.h
+
 # IDE
 .vscode/
 .idea/
