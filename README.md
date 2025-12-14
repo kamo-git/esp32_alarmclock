@@ -1,25 +1,98 @@
 # ESP32 Alarm Clock with TM1637 Display
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![PlatformIO](https://img.shields.io/badge/PlatformIO-ESP32-blue.svg)](https://platformio.org/)
+[![Arduino](https://img.shields.io/badge/Framework-Arduino-00979D.svg)](https://www.arduino.cc/)
+
 ESP32ベースのアラームクロックシステム。TM1637 7セグメントディスプレイ、電子オルゴール（ブザー）、NTP時刻同期、WiFi経由でのアラーム設定機能を搭載。
+
+---
+
+## 🚀 Quick Start / クイックスタート
+
+**New to this project?** Start here: **[QUICKSTART.md](QUICKSTART.md)** - Get running in 5 steps (~35 minutes)!
+
+このプロジェクトが初めてですか？ **[QUICKSTART.md](QUICKSTART.md)** から始めてください - 5ステップで完成（約35分）！
+
+---
 
 ## 📚 Documentation / ドキュメント
 
-- **[Quick Start Guide](QUICKSTART.md)** - Get started in 5 steps! / 5ステップで始める
-- **[Wiring Instructions](WIRING.md)** - Detailed wiring guide / 詳細な配線ガイド
-- **[Configuration Guide](CONFIGURATION.md)** - Customize settings / 設定のカスタマイズ
-- **[Examples](EXAMPLES.md)** - Usage examples and modifications / 使用例とカスタマイズ
-- **[Testing Guide](TESTING.md)** - How to test your build / テスト方法
-- **[Architecture](ARCHITECTURE.md)** - System design details / システム設計の詳細
+| Document | Description |
+|----------|-------------|
+| **[Quick Start Guide](QUICKSTART.md)** | Get started in 5 steps! / 5ステップで始める |
+| **[Wiring Instructions](WIRING.md)** | Detailed wiring guide / 詳細な配線ガイド |
+| **[Configuration Guide](CONFIGURATION.md)** | Customize settings / 設定のカスタマイズ |
+| **[Examples](EXAMPLES.md)** | Usage examples and modifications / 使用例とカスタマイズ |
+| **[Testing Guide](TESTING.md)** | How to test your build / テスト方法 |
+| **[Architecture](ARCHITECTURE.md)** | System design details / システム設計の詳細 |
+| **[Screenshots](SCREENSHOTS.md)** | UI/UX documentation / UI/UXドキュメント |
+| **[Summary](SUMMARY.md)** | Project overview / プロジェクト概要 |
 
-## 機能 (Features)
+---
 
+---
+
+## 🎯 Features / 機能
+
+### Hardware / ハードウェア
 - ✅ TM1637 4桁7セグメントディスプレイでの時刻表示
+- ✅ パッシブブザーによるメロディー再生
+- ✅ 5本のワイヤーのみでシンプルな配線
+
+### Software / ソフトウェア
 - ✅ NTPサーバーによる自動時刻同期（JST対応）
 - ✅ WiFi経由でのアラーム設定
 - ✅ スマートフォン対応のWebインターフェース
 - ✅ 複数のアラーム設定（最大5個）
 - ✅ 2種類のメロディー選択
 - ✅ アラーム設定の永続化（再起動後も保持）
+
+### Interface / インターフェース
+- ✅ レスポンシブWebデザイン
+- ✅ リアルタイム時刻表示
+- ✅ RESTful API
+- ✅ ゼロ依存関係（外部ライブラリ不要）
+
+---
+
+## 💡 Demo / デモ
+
+### Hardware Setup / ハードウェア構成
+```
+┌─────────────┐
+│  ESP32 Dev  │
+│   Board     │
+└─────┬───────┘
+      │
+      ├─GPIO22──→ TM1637 CLK
+      ├─GPIO21──→ TM1637 DIO
+      ├─GPIO25──→ Buzzer +
+      ├─3.3V───→ TM1637 VCC
+      └─GND────→ TM1637 GND, Buzzer -
+```
+
+### Web Interface Preview / Webインターフェースプレビュー
+```
+🕐 ESP32 Alarm Clock
+─────────────────────
+Current Time: 12:34
+
+Set New Alarm
+  Hour: [__]  Minute: [__]
+  Melody: [Melody 1 ▼]
+  [  Add Alarm  ]
+
+Active Alarms
+  ┌─────────────────────┐
+  │ 07:30 - Melody 1 ✓  │ [Delete]
+  └─────────────────────┘
+  ┌─────────────────────┐
+  │ 12:00 - Melody 2 ✓  │ [Delete]
+  └─────────────────────┘
+```
+
+---
 
 ## 必要な部品 (Required Components)
 
