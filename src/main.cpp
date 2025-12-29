@@ -15,8 +15,8 @@
 // WiFi credentials (change these for your network)
 // SECURITY NOTE: For production use, consider using WiFiManager library
 // or storing credentials in a separate configuration file not committed to version control
-const char* ssid = "YourWiFiSSID";
-const char* password = "YourWiFiPassword";
+const char* ssid = "elecom-4e1ba6";
+const char* password = "w6v42nc58d77";
 
 // NTP Client
 WiFiUDP ntpUDP;
@@ -41,6 +41,9 @@ struct Alarm {
 
 Alarm alarms[5]; // Support up to 5 alarms
 int alarmCount = 0;
+
+void saveAlarms();
+void loadAlarms();
 
 // Melody notes (frequencies in Hz)
 #define NOTE_C4  262
@@ -87,7 +90,7 @@ void setupWiFi() {
 }
 
 void handleRoot() {
-  String html = R"(
+  String html = R"ESP32HTML(
 <!DOCTYPE html>
 <html>
 <head>
@@ -209,16 +212,16 @@ void handleRoot() {
                     if (data.alarms.length === 0) {
                         alarmList.innerHTML = '<p>No alarms set</p>';
                     } else {
-                        alarmList.innerHTML = data.alarms.map((alarm, index) => `
-                            <div class="alarm-item">
+                        alarmList.innerHTML = data.alarms.map((alarm, index) => {
+                            return `<div class="alarm-item">
                                 <span>
                                     ${String(alarm.hour).padStart(2, '0')}:${String(alarm.minute).padStart(2, '0')} 
                                     - Melody ${alarm.melody}
                                     ${alarm.enabled ? '✓' : '✗'}
                                 </span>
                                 <button class="delete-btn" onclick="deleteAlarm(${index})">Delete</button>
-                            </div>
-                        `).join('');
+                            </div>`;
+                        }).join('');
                     }
                 })
                 .catch(error => console.error('Error:', error));
@@ -274,7 +277,7 @@ void handleRoot() {
     </script>
 </body>
 </html>
-)";
+)ESP32HTML";
   server.send(200, "text/html", html);
 }
 
