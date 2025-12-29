@@ -36,38 +36,18 @@ struct Alarm {
   bool enabled;
   int hour;
   int minute;
-  String melody;
+  uint8_t days; // Bitmask: bit0=日, bit1=月, bit2=火, bit3=水, bit4=木, bit5=金, bit6=土
 };
 
-Alarm alarms[5]; // Support up to 5 alarms
+Alarm alarms[10]; // Support up to 10 alarms
 int alarmCount = 0;
 
 void saveAlarms();
 void loadAlarms();
 
-// Melody notes (frequencies in Hz)
-#define NOTE_C4  262
-#define NOTE_D4  294
-#define NOTE_E4  330
-#define NOTE_F4  349
-#define NOTE_G4  392
-#define NOTE_A4  440
-#define NOTE_B4  494
-#define NOTE_C5  523
-
-// Melody definitions
-int melody1[] = {NOTE_C4, NOTE_E4, NOTE_G4, NOTE_C5, 0};
-int melody1Duration[] = {200, 200, 200, 400, 0};
-
-int melody2[] = {NOTE_C4, NOTE_D4, NOTE_E4, NOTE_F4, NOTE_G4, NOTE_A4, NOTE_B4, NOTE_C5, 0};
-int melody2Duration[] = {150, 150, 150, 150, 150, 150, 150, 300, 0};
-
 bool alarmTriggered = false;
 unsigned long alarmStartTime = 0;
-int triggeredAlarmIndex = -1; // Track which alarm was triggered
 const unsigned long ALARM_DURATION = 60000; // Alarm duration 60 seconds
-const unsigned long MELODY_REPEAT_INTERVAL = 3000; // Replay melody every 3 seconds
-const unsigned long TIMING_TOLERANCE = 100; // Timing tolerance in milliseconds
 
 void setupWiFi() {
   Serial.println("Connecting to WiFi...");
@@ -96,7 +76,7 @@ void handleRoot() {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ESP32 Alarm Clock</title>
+    <title>ESP32 目覚まし時計</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -166,42 +146,81 @@ void handleRoot() {
             color: #4CAF50;
             margin: 20px 0;
         }
+        .days-select {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        .days-select label {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            padding: 5px 10px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .days-select input:checked + span {
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        .days-display {
+            font-size: 12px;
+            color: #666;
+        }
     </style>
 </head>
 <body>
-    <h1>🕐 ESP32 Alarm Clock</h1>
+    <h1>🕐 ESP32 目覚まし時計</h1>
     <div class="current-time" id="currentTime">--:--</div>
     
     <div class="alarm-container">
-        <h2>Set New Alarm</h2>
+        <h2>アラーム設定</h2>
         <form class="alarm-form" onsubmit="setAlarm(event)">
             <div class="time-input">
-                <input type="number" id="hour" min="0" max="23" placeholder="Hour (0-23)" required>
-                <input type="number" id="minute" min="0" max="59" placeholder="Minute (0-59)" required>
+                <input type="number" id="hour" min="0" max="23" placeholder="時 (0-23)" required>
+                <input type="number" id="minute" min="0" max="59" placeholder="分 (0-59)" required>
             </div>
-            <select id="melody">
-                <option value="1">Melody 1 (Simple)</option>
-                <option value="2">Melody 2 (Scale)</option>
-            </select>
-            <button type="submit">Add Alarm</button>
+            <div class="days-select">
+                <label><input type="checkbox" name="day" value="0"><span>日</span></label>
+                <label><input type="checkbox" name="day" value="1" checked><span>月</span></label>
+                <label><input type="checkbox" name="day" value="2" checked><span>火</span></label>
+                <label><input type="checkbox" name="day" value="3" checked><span>水</span></label>
+                <label><input type="checkbox" name="day" value="4" checked><span>木</span></label>
+                <label><input type="checkbox" name="day" value="5" checked><span>金</span></label>
+                <label><input type="checkbox" name="day" value="6"><span>土</span></label>
+            </div>
+            <button type="submit">アラーム追加</button>
         </form>
     </div>
     
     <div class="alarm-container">
-        <h2>Active Alarms</h2>
+        <h2>設定済みアラーム</h2>
         <div class="alarm-list" id="alarmList">
-            Loading...
+            読み込み中...
         </div>
     </div>
     
     <script>
+        const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+        
         function updateCurrentTime() {
             fetch('/time')
                 .then(response => response.json())
                 .then(data => {
-                    document.getElementById('currentTime').textContent = data.time;
+                    document.getElementById('currentTime').textContent = data.time + ' (' + dayNames[data.day] + ')';
                 })
                 .catch(error => console.error('Error:', error));
+        }
+        
+        function getDaysString(days) {
+            let result = [];
+            for (let i = 0; i < 7; i++) {
+                if (days & (1 << i)) {
+                    result.push(dayNames[i]);
+                }
+            }
+            return result.join(' ');
         }
         
         function loadAlarms() {
@@ -210,16 +229,16 @@ void handleRoot() {
                 .then(data => {
                     const alarmList = document.getElementById('alarmList');
                     if (data.alarms.length === 0) {
-                        alarmList.innerHTML = '<p>No alarms set</p>';
+                        alarmList.innerHTML = '<p>アラームが設定されていません</p>';
                     } else {
                         alarmList.innerHTML = data.alarms.map((alarm, index) => {
                             return `<div class="alarm-item">
-                                <span>
-                                    ${String(alarm.hour).padStart(2, '0')}:${String(alarm.minute).padStart(2, '0')} 
-                                    - Melody ${alarm.melody}
-                                    ${alarm.enabled ? '✓' : '✗'}
-                                </span>
-                                <button class="delete-btn" onclick="deleteAlarm(${index})">Delete</button>
+                                <div>
+                                    <div>${String(alarm.hour).padStart(2, '0')}:${String(alarm.minute).padStart(2, '0')} 
+                                    ${alarm.enabled ? '✓' : '✗'}</div>
+                                    <div class="days-display">${getDaysString(alarm.days)}</div>
+                                </div>
+                                <button class="delete-btn" onclick="deleteAlarm(${index})">削除</button>
                             </div>`;
                         }).join('');
                     }
@@ -231,12 +250,21 @@ void handleRoot() {
             event.preventDefault();
             const hour = document.getElementById('hour').value;
             const minute = document.getElementById('minute').value;
-            const melody = document.getElementById('melody').value;
+            
+            let days = 0;
+            document.querySelectorAll('input[name="day"]:checked').forEach(cb => {
+                days |= (1 << parseInt(cb.value));
+            });
+            
+            if (days === 0) {
+                alert('曜日を1つ以上選択してください');
+                return;
+            }
             
             fetch('/setalarm', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({hour: parseInt(hour), minute: parseInt(minute), melody: melody})
+                body: JSON.stringify({hour: parseInt(hour), minute: parseInt(minute), days: days})
             })
             .then(response => response.json())
             .then(data => {
@@ -246,12 +274,13 @@ void handleRoot() {
                 loadAlarms();
             })
             .catch(error => {
-                alert('Error setting alarm');
+                alert('アラーム設定エラー');
                 console.error('Error:', error);
             });
         }
         
         function deleteAlarm(index) {
+            if (!confirm('このアラームを削除しますか？')) return;
             fetch('/deletealarm', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -263,7 +292,7 @@ void handleRoot() {
                 loadAlarms();
             })
             .catch(error => {
-                alert('Error deleting alarm');
+                alert('アラーム削除エラー');
                 console.error('Error:', error);
             });
         }
@@ -285,11 +314,13 @@ void handleGetTime() {
   timeClient.update();
   int currentHour = timeClient.getHours();
   int currentMinute = timeClient.getMinutes();
+  int currentDay = timeClient.getDay(); // 0=Sunday, 1=Monday, ...
   
   String timeStr = String(currentHour) + ":" + (currentMinute < 10 ? "0" : "") + String(currentMinute);
   
   StaticJsonDocument<200> doc;
   doc["time"] = timeStr;
+  doc["day"] = currentDay;
   
   String response;
   serializeJson(doc, response);
@@ -297,7 +328,7 @@ void handleGetTime() {
 }
 
 void handleGetAlarms() {
-  StaticJsonDocument<1024> doc;
+  StaticJsonDocument<2048> doc;
   JsonArray alarmsArray = doc.createNestedArray("alarms");
   
   for (int i = 0; i < alarmCount; i++) {
@@ -305,7 +336,7 @@ void handleGetAlarms() {
     alarmObj["enabled"] = alarms[i].enabled;
     alarmObj["hour"] = alarms[i].hour;
     alarmObj["minute"] = alarms[i].minute;
-    alarmObj["melody"] = alarms[i].melody;
+    alarmObj["days"] = alarms[i].days;
   }
   
   String response;
@@ -319,26 +350,26 @@ void handleSetAlarm() {
     DeserializationError error = deserializeJson(doc, server.arg("plain"));
     
     if (error) {
-      server.send(400, "application/json", "{\"message\":\"Invalid JSON\"}");
+      server.send(400, "application/json", "{\"message\":\"JSONエラー\"}");
       return;
     }
     
-    if (alarmCount >= 5) {
-      server.send(400, "application/json", "{\"message\":\"Maximum 5 alarms\"}");
+    if (alarmCount >= 10) {
+      server.send(400, "application/json", "{\"message\":\"アラームは最大10個までです\"}");
       return;
     }
     
     alarms[alarmCount].enabled = true;
     alarms[alarmCount].hour = doc["hour"];
     alarms[alarmCount].minute = doc["minute"];
-    alarms[alarmCount].melody = doc["melody"].as<String>();
+    alarms[alarmCount].days = doc["days"];
     alarmCount++;
     
     saveAlarms();
     
-    server.send(200, "application/json", "{\"message\":\"Alarm set successfully\"}");
+    server.send(200, "application/json", "{\"message\":\"アラームを設定しました\"}");
   } else {
-    server.send(400, "application/json", "{\"message\":\"No data received\"}");
+    server.send(400, "application/json", "{\"message\":\"データがありません\"}");
   }
 }
 
@@ -348,14 +379,14 @@ void handleDeleteAlarm() {
     DeserializationError error = deserializeJson(doc, server.arg("plain"));
     
     if (error) {
-      server.send(400, "application/json", "{\"message\":\"Invalid JSON\"}");
+      server.send(400, "application/json", "{\"message\":\"JSONエラー\"}");
       return;
     }
     
     int index = doc["index"];
     
     if (index < 0 || index >= alarmCount) {
-      server.send(400, "application/json", "{\"message\":\"Invalid alarm index\"}");
+      server.send(400, "application/json", "{\"message\":\"無効なアラームです\"}");
       return;
     }
     
@@ -367,9 +398,9 @@ void handleDeleteAlarm() {
     
     saveAlarms();
     
-    server.send(200, "application/json", "{\"message\":\"Alarm deleted\"}");
+    server.send(200, "application/json", "{\"message\":\"アラームを削除しました\"}");
   } else {
-    server.send(400, "application/json", "{\"message\":\"No data received\"}");
+    server.send(400, "application/json", "{\"message\":\"データがありません\"}");
   }
 }
 
@@ -382,7 +413,7 @@ void saveAlarms() {
     String value = String(alarms[i].enabled) + "," + 
                    String(alarms[i].hour) + "," + 
                    String(alarms[i].minute) + "," + 
-                   alarms[i].melody;
+                   String(alarms[i].days);
     preferences.putString(key.c_str(), value);
   }
   
@@ -405,39 +436,21 @@ void loadAlarms() {
       alarms[i].enabled = value.substring(0, firstComma).toInt();
       alarms[i].hour = value.substring(firstComma + 1, secondComma).toInt();
       alarms[i].minute = value.substring(secondComma + 1, thirdComma).toInt();
-      alarms[i].melody = value.substring(thirdComma + 1);
+      alarms[i].days = value.substring(thirdComma + 1).toInt();
     }
   }
   
   preferences.end();
 }
 
-void playMelody(int melodyNumber) {
-  int* notes;
-  int* durations;
-  
-  if (melodyNumber == 1) {
-    notes = melody1;
-    durations = melody1Duration;
-  } else {
-    notes = melody2;
-    durations = melody2Duration;
-  }
-  
-  for (int i = 0; notes[i] != 0; i++) {
-    tone(BUZZER_PIN, notes[i], durations[i]);
-    delay(durations[i] * 1.3);
-    noTone(BUZZER_PIN);
-  }
-}
+
 
 void checkAlarms() {
   if (alarmTriggered) {
     // Check if alarm duration has passed
     if (millis() - alarmStartTime > ALARM_DURATION) {
       alarmTriggered = false;
-      triggeredAlarmIndex = -1;
-      noTone(BUZZER_PIN);
+      digitalWrite(BUZZER_PIN, LOW);
     }
     return;
   }
@@ -446,6 +459,7 @@ void checkAlarms() {
   int currentHour = timeClient.getHours();
   int currentMinute = timeClient.getMinutes();
   int currentSecond = timeClient.getSeconds();
+  int currentDay = timeClient.getDay(); // 0=Sunday, 1=Monday, ...
   
   // Only check at the start of the minute
   if (currentSecond != 0) {
@@ -455,15 +469,14 @@ void checkAlarms() {
   for (int i = 0; i < alarmCount; i++) {
     if (alarms[i].enabled && 
         alarms[i].hour == currentHour && 
-        alarms[i].minute == currentMinute) {
+        alarms[i].minute == currentMinute &&
+        (alarms[i].days & (1 << currentDay))) {
       Serial.println("Alarm triggered!");
       alarmTriggered = true;
       alarmStartTime = millis();
-      triggeredAlarmIndex = i; // Remember which alarm triggered
       
-      // Play melody
-      int melodyNum = alarms[i].melody.toInt();
-      playMelody(melodyNum);
+      // Turn on melody IC
+      digitalWrite(BUZZER_PIN, HIGH);
       break;
     }
   }
@@ -496,6 +509,14 @@ void setup() {
   // Connect to WiFi
   setupWiFi();
   
+  // Display IP address host part for 5 seconds
+  if (WiFi.status() == WL_CONNECTED) {
+    IPAddress ip = WiFi.localIP();
+    int hostPart = ip[3]; // Get the last octet (host part)
+    display.showNumberDec(hostPart, false);
+    delay(5000);
+  }
+  
   // Initialize NTP Client
   timeClient.begin();
   timeClient.update();
@@ -525,13 +546,5 @@ void loop() {
     updateDisplay();
     checkAlarms();
     lastUpdate = millis();
-  }
-  
-  // Continue playing melody if alarm is triggered
-  if (alarmTriggered && triggeredAlarmIndex >= 0 && 
-      (millis() - alarmStartTime) % MELODY_REPEAT_INTERVAL < TIMING_TOLERANCE) {
-    // Replay melody every 3 seconds during alarm
-    int melodyNum = alarms[triggeredAlarmIndex].melody.toInt();
-    playMelody(melodyNum);
   }
 }
